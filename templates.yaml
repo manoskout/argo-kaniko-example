@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: container-creation-template
+spec:
+  templates:
+  - name: build-kaniko-image
+    inputs:
+      parameters:
+        - name: dockerfile
+        - name: context
+        - name: image-name
+        - name: image-tag
+
+    container: 
+        volumeMounts:
+          - name: kaniko-secret
+            mountPath: /kaniko/.docker
+          - name: dockerfile-storage
+            mountPath: /workspace
+        image: gcr.io/kaniko-project/executor:debug
+        args:
+          - --dockerfile={{inputs.parameters.dockerfile}}
+          - --context={{inputs.parameters.context}}
+          - --destination={{inputs.parameters.image-name}}:{{inputs.parameters.image-tag}}	

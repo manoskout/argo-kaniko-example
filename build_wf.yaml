@@ -1,0 +1,54 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: container-image-
+spec:
+  entrypoint: wf-test
+  serviceAccountName: argo
+
+  volumes:
+    - name: kaniko-secret
+      secret:
+        secretName: regcred
+        items:
+          - key: .dockerconfigjson
+            path: config.json
+    - name: dockerfile-storage
+      persistentVolumeClaim:
+        claimName: dockerfile-claim
+
+  templates:
+    - name: wf-test
+      dag:
+        tasks:
+        - name: build-container-image
+          templateRef: 
+            name: container-creation-template
+            template: build-kaniko-image
+          arguments:
+            parameters:
+            - name: dockerfile
+              value: "work/dockerfile"
+            - name: context
+              value: "dir://workspace"
+            - name: image-name
+              value: manoskoutoulakis/wedidit
+            - name: image-tag
+              value: latest
+        # - name: check-image
+        # template: echo
+        # arguments:
+        #   parameters:
+        #   - name: message
+        #     value: Deploying to the production...
+        # dependencies:
+        # - tests
+    # - name: echo
+    #   inputs:
+    #     parameters:
+    #     - name: message
+    #   container:
+    #     image: alpine
+    #     command: [echo]
+    #     args:
+    #     - "{{inputs.parameters.message}}"
