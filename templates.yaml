@@ -11,7 +11,6 @@ spec:
         - name: context
         - name: image-name
         - name: image-tag
-
     container: 
         volumeMounts:
           - name: kaniko-secret
@@ -23,3 +22,12 @@ spec:
           - --dockerfile={{inputs.parameters.dockerfile}}
           - --context={{inputs.parameters.context}}
           - --destination={{inputs.parameters.image-name}}:{{inputs.parameters.image-tag}}	
+  - name: test-image
+    inputs:
+      parameters:
+        - name: image-name
+        - name: msg
+    container:
+      image: "{{inputs.parameters.image-name}}"
+      command: [echo]
+      args: ["{{inputs.parameters.msg}}"]

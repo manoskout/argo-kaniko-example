@@ -18,10 +18,10 @@ spec:
         claimName: dockerfile-claim
 
   templates:
-    - name: wf-test
-      dag:
-        tasks:
-        - name: build-container-image
+  - name: wf-test
+    dag:
+      tasks:
+        - name: build-first-image
           templateRef: 
             name: container-creation-template
             template: build-kaniko-image
@@ -32,23 +32,53 @@ spec:
             - name: context
               value: "dir://workspace"
             - name: image-name
-              value: <your_image_name> # i.e. manoskoutoulakis/test
+              value: <your_image_name> # i.e.  manoskoutoulakis/test
             - name: image-tag
-              value: <your_tag>
-        # - name: check-image
-        # template: echo
-        # arguments:
-        #   parameters:
-        #   - name: message
-        #     value: Deploying to the production...
-        # dependencies:
-        # - tests
-    # - name: echo
-    #   inputs:
-    #     parameters:
-    #     - name: message
-    #   container:
-    #     image: alpine
-    #     command: [echo]
-    #     args:
-    #     - "{{inputs.parameters.message}}"
+              value: latest
+        - name: build-second-image
+          templateRef: 
+            name: container-creation-template
+            template: build-kaniko-image
+          arguments:
+            parameters:
+            - name: dockerfile
+              value: "work/dockerfile1"
+            - name: context
+              value: "dir://workspace"
+            - name: image-name
+              value: <your_image_name> # i.e. manoskoutoulakis/secondtest
+            - name: image-tag
+              value: latest
+        - name: test-first-image
+          dependencies: [build-first-image]
+          templateRef: 
+            name: container-creation-template
+            template: test-image
+          arguments:
+            parameters:
+            - name: image-name
+              value: <your_image_name> # i.e. manoskoutoulakis/test
+            - name: msg
+              value:  "Hello from the first image"
+        - name: test-second-image
+          dependencies: [build-second-image]
+          templateRef: 
+            name: container-creation-template
+            template: test-image
+          arguments:
+            parameters:
+            - name: image-name
+              value: <your_image_name> # i.e. manoskoutoulakis/secondtest
+            - name: msg
+              value:  "Hello from the second image"
+  #       - name: check-image
+  #         depends: "build-container-image"
+  #         template: echo
+  #         arguments:
+  #           parameters:
+  #           - name: message
+  #             value: Checking...
+  #           - name: image-name
+  #             value: manoskoutoulakis/test #<your_image_name> # i.e.
+  #           - name: image-tag
+  #             value: latest
