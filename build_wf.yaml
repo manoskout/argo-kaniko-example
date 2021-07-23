@@ -32,9 +32,9 @@ spec:
             - name: context
               value: "dir://workspace"
             - name: image-name
-              value: manoskoutoulakis/wedidit
+              value: <your_image_name> # i.e. manoskoutoulakis/test
             - name: image-tag
-              value: latest
+              value: <your_tag>
         # - name: check-image
         # template: echo
         # arguments:
