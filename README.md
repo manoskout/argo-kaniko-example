@@ -13,48 +13,48 @@ This repository consists of two examples of Argo Workflow
 To install the whole environment you could execut the `install.sh`, otherwise you could follow the steps that are listed below:
 1. Argo installation ()
 ```shell
-   kubectl create ns argo
-   kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo-workflows/stable/manifests/namespace-install.yaml 
+kubectl create ns argo
+kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo-workflows/stable/manifests/namespace-install.yaml 
 ```
-2. Setup private registry
+2. Setup a private registry
 ```shell
-    # We'll start with creating a directory in which we'll store our configs and certificates (TLS configuration, htpasswd config)
-    mkdir -p registry/certs 
-    mkdir -p registry/auth
-    cd registry/certs/
-    openssl genrsa 1024 > domain.key
-    chmod 400 domain.key
-    # Generate certificate 
-    openssl req -new -x509 -nodes -sha1 -days 365 -key domain.key -out domain.crt
-    # Access auth/ directory
-    cd ../auth/
-    # Use the registry container to generate a htpasswd file
-    # You can change the username and password fields
-    docker run --rm --entrypoint htpasswd registry:2 -Bbn username testuser password testpassword > htpasswd
-    
-    # Move to the registry/ folder
-    cd ..
-    docker run -d \
-      -p 5000:5000 \
-      --restart=always \
-      --name registry \
-      -v "$(pwd)"/auth:/auth \
-      -e "REGISTRY_AUTH=htpasswd" \
-      -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" \
-      -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
-      -v "$(pwd)"/certs:/certs \
-      -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt \
-      -e REGISTRY_HTTP_TLS_KEY=/certs/domain.key \
-      registry:2
+# We'll start with creating a directory in which we'll store our configs and certificates (TLS configuration, htpasswd config)
+mkdir -p registry/certs 
+mkdir -p registry/auth
+cd registry/certs/
+openssl genrsa 1024 > domain.key
+chmod 400 domain.key
+# Generate certificate 
+openssl req -new -x509 -nodes -sha1 -days 365 -key domain.key -out domain.crt
+# Access auth/ directory
+cd ../auth/
+# Use the registry container to generate a htpasswd file
+# You can change the username and password fields
+docker run --rm --entrypoint htpasswd registry:2 -Bbn username testuser password testpassword > htpasswd
+
+# Move to the registry/ folder
+cd ..
+docker run -d \
+    -p 5000:5000 \
+    --restart=always \
+    --name registry \
+    -v "$(pwd)"/auth:/auth \
+    -e "REGISTRY_AUTH=htpasswd" \
+    -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" \
+    -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
+    -v "$(pwd)"/certs:/certs \
+    -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt \
+    -e REGISTRY_HTTP_TLS_KEY=/certs/domain.key \
+    registry:2
 ```
 To push/pull any image from your local registry you could see the examples below:
 ```shell
 # Sign-in to the private registry
 docker login 0.0.0.0:5000
 # Pull busybox image
-$ docker pull busybox
+docker pull busybox
 # Tag the image
-$ docker tag busybox 0.0.0.0:5000/busybox
+docker tag busybox 0.0.0.0:5000/busybox
 # Try to push the image
 docker push 0.0.0.0:5000/busybox
 ```
@@ -70,7 +70,7 @@ kubectl -n argo port-forward --address 0.0.0.0 argo-artifacts-646df795d7-v2k5l 9
 - build_wf.yaml  (is for starting the workflow that contains the example image)
 
 
-## Create a dockerfile into the project directory
+## Create a dockerfile into the project's directory
 Firstly, we should navigate into the project's directory and create the following commands. The dockerfiles below will be saved into the context folder
 
 ```shell
@@ -114,12 +114,4 @@ Create the Secret, naming it regcred:
 kubectl create secret docker-registry regcred --docker-server=<your-registry-server> --docker-username=<your-name> --docker-password=<your-pword> --docker-email=<your-email>
 ```
 
-## Create resources
-
-```shell
-kubectl -n argo create -f volume.yaml
-kubectl -n argo create -f volume-claim.
-argo -n argo template create templates.yaml
-argo -n argo submit --watch build_wf.yaml
-```
 
