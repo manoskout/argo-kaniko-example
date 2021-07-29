@@ -29,9 +29,9 @@ spec:
           - --skip-tls-verify-pull=true        
         env:
           - name: AWS_ACCESS_KEY_ID
-            value: ufkMitetuXoEwTnQb9yX
+            value: vUWn1dIXqO2H2CB1ULu8
           - name: AWS_SECRET_ACCESS_KEY
-            value: Cp70fVf4VkzktdSnVR9AZixDGVg5hhMr28NGydON
+            value: xpBCetyjT7OJpIpEfWn5oLgFW4hP6rxZ1TDgJmID
           - name: AWS_REGION
             value: us-east-1
           - name: S3_ENDPOINT
