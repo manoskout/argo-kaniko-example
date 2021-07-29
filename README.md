@@ -1,11 +1,9 @@
 # Build an image through an Argo workflow
-This repository consists of two examples of Argo Workflow
-1. upload and run images using public image repository (i.e. DockerHub)
-2. upload and run images using a private image repository and private object storage (MinIO) 
+This repository contains an example of Argo Workflow, in which:
+- upload and run images using a private image repository and private object storage (MinIO) 
 
 ## Prerequisities
 - A Kubernetes Cluster. For this example we use Minikube (kubernetes locally)
-- A dockerhub account in order to push the image (for public repo)
 - Integration of private registry
 - Deployment of private ocject storage (we use minio in our example) 
 
