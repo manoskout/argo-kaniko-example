@@ -9,7 +9,7 @@ This repository contains an example of Argo Workflow, in which:
 
 ## Installation steps
 To install the whole environment you could execut the `install.sh`, otherwise you could follow the steps that are listed below:
-1. Argo installation (here)[https://argoproj.github.io/argo-workflows/quick-start/]
+1. Argo installation ([here](https://argoproj.github.io/argo-workflows/quick-start/))
 ```shell
 kubectl create ns argo
 kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo-workflows/stable/manifests/namespace-install.yaml 
