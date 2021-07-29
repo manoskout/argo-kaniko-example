@@ -76,9 +76,13 @@ helm install argo-artifacts minio/minio --set service.type=LoadBalancer --set fu
 ```shell
 ACCESS_KEY=$(kubectl get secret argo-artifacts --namespace argo -o jsonpath="{.data.accesskey}" | base64 --decode)
 SECRET_KEY=$(kubectl get secret argo-artifacts --namespace argo -o jsonpath="{.data.secretkey}" | base64 --decode)
+# Port-forward for remote connection of UI
+PODNAME=$(kubectl -n argo get pods | grep argo-artifacts | awk '{ print $1 }')
+kubectl -n argo port-forward --address 0.0.0.0 $PODNAME 9000:9000  &>/dev/null &
 ```
+> Note: You need to install minio client CLI, further instrucitons [here](https://docs.min.io/docs/minio-client-quickstart-guide.html)
 
-kubectl -n argo port-forward --address 0.0.0.0 argo-artifacts-646df795d7-v2k5l 9000:9000  &>/dev/null &
+
 ## Configuration files 
 
 <!-- There are four files that have to initialize to run the example:
