@@ -59,6 +59,24 @@ docker tag busybox 0.0.0.0:5000/busybox
 docker push 0.0.0.0:5000/busybox
 ```
 
+Secret authorization that holds the authentication token:
+```shell
+kubectl create secret docker-registry regcred --docker-server=<your-registry-server> --docker-username=<your-name> --docker-password=<your-pword> --docker-email=<your-email>
+```
+
+3. Configuring your artifact repository
+Argo project supports any S3 artifact repository (AWS,GCS,Minio,etc.)
+```shell
+brew install helm # mac, helm 3.x
+helm repo add minio https://helm.min.io/ # official minio Helm charts
+helm repo update
+helm install argo-artifacts minio/minio --set service.type=LoadBalancer --set fullnameOverride=argo-artifacts --namespace argo
+```
+> Note: Minio is installed via Helm, it generated credentials. You will use these credentials to login to the UI. The commands below give you the `ACCESKEY` and the `SECRETKEY`
+```shell
+ACCESS_KEY=$(kubectl get secret argo-artifacts --namespace argo -o jsonpath="{.data.accesskey}" | base64 --decode)
+SECRET_KEY=$(kubectl get secret argo-artifacts --namespace argo -o jsonpath="{.data.secretkey}" | base64 --decode)
+```
 
 kubectl -n argo port-forward --address 0.0.0.0 argo-artifacts-646df795d7-v2k5l 9000:9000  &>/dev/null &
 ## Configuration files 
@@ -113,5 +131,3 @@ Create the Secret, naming it regcred:
 ```shell
 kubectl create secret docker-registry regcred --docker-server=<your-registry-server> --docker-username=<your-name> --docker-password=<your-pword> --docker-email=<your-email>
 ```
-
-
