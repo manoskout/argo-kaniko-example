@@ -35,7 +35,7 @@ while true; do
         shift 2
         ;;
     -d | --directory)
-        export file=$2
+        export directory=$2
         shift 2
         ;; 
     --)
@@ -55,7 +55,8 @@ elif [ $(uname) = "Darwin" ]; then
     echo "OS: MacOS $(sw_vers | awk '{if($1=="ProductVersion:")print $2}') "
     host="$(ipconfig getifaddr en0):9000"
 fi
-
+file=context.tar.gz
+tar -czvf $file $directory/*
 s3_key=$(kubectl get secret argo-artifacts --namespace argo -o jsonpath="{.data.accesskey}" | base64 --decode)
 s3_secret=$(kubectl get secret argo-artifacts --namespace argo -o jsonpath="{.data.secretkey}" | base64 --decode)
 
@@ -79,4 +80,10 @@ if [ $curl_err_code -eq 0 ]; then
     echo "The file uploaded succesfully"
 else
     echo "Something goes wrong, ERROR : $curl_err_code"
+fi
+
+echo "Deleting temporal files ...."
+if [ $(find $file) ]; then
+    rm -rf $file
+    echo "Done!"
 fi
