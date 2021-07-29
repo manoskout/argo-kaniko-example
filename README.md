@@ -9,6 +9,12 @@ This repository contains an example of Argo Workflow, in which:
 
 ## Installation steps
 To install the whole environment you could execut the `install.sh`, otherwise you could follow the steps that are listed below:
+- Start minikube with the command below:
+  ```shell
+  
+  minikube start --insecure-registry="<your)local_ip>:5000" 
+  ```
+  This command is used in order to push or pull images from private registry
 1. Argo installation ([here](https://argoproj.github.io/argo-workflows/quick-start/))
 ```shell
 kubectl create ns argo
@@ -19,28 +25,27 @@ kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo-workflo
 # We'll start with creating a directory in which we'll store our configs and certificates (TLS configuration, htpasswd config)
 mkdir -p registry/certs 
 mkdir -p registry/auth
-cd registry/certs/
-openssl genrsa 1024 > domain.key
-chmod 400 domain.key
+
+openssl genrsa 1024 > registry/certs/domain.key
+chmod 400 registry/certs/domain.key
 # Generate certificate 
-openssl req -new -x509 -nodes -sha1 -days 365 -key domain.key -out domain.crt
+openssl req -new -x509 -nodes -sha1 -days 365 -key registry/certs/domain.key -out registry/certs/domain.crt
 # Access auth/ directory
-cd ../auth/
 # Use the registry container to generate a htpasswd file
 # You can change the username and password fields
-docker run --rm --entrypoint htpasswd registry:2 -Bbn username testuser password testpassword > htpasswd
-
+docker run \
+  --entrypoint htpasswd \
+  httpd:2 -Bbn testuser testpassword > registry/auth/htpasswd
 # Move to the registry/ folder
-cd ..
 docker run -d \
     -p 5000:5000 \
     --restart=always \
     --name registry \
-    -v "$(pwd)"/auth:/auth \
+    -v "$(pwd)"/registry/auth:/auth \
     -e "REGISTRY_AUTH=htpasswd" \
     -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" \
     -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
-    -v "$(pwd)"/certs:/certs \
+    -v "$(pwd)"/registry/certs:/certs \
     -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt \
     -e REGISTRY_HTTP_TLS_KEY=/certs/domain.key \
     registry:2
@@ -59,7 +64,7 @@ docker push 0.0.0.0:5000/busybox
 
 Secret authorization that holds the authentication token:
 ```shell
-kubectl create secret docker-registry regcred --docker-server=<your-registry-server> --docker-username=<your-name> --docker-password=<your-pword> --docker-email=<your-email>
+kubectl -n argo create secret docker-registry regcred --docker-server=<your-registry-server> --docker-username=<your-name> --docker-password=<your-pword>
 ```
 
 3. Configuring your artifact repository
@@ -76,9 +81,16 @@ ACCESS_KEY=$(kubectl get secret argo-artifacts --namespace argo -o jsonpath="{.d
 SECRET_KEY=$(kubectl get secret argo-artifacts --namespace argo -o jsonpath="{.data.secretkey}" | base64 --decode)
 # Port-forward for remote connection of UI
 PODNAME=$(kubectl -n argo get pods | grep argo-artifacts | awk '{ print $1 }')
-kubectl -n argo port-forward --address 0.0.0.0 $PODNAME 9000:9000  &>/dev/null &
+kubectl -n argo port-forward --address 0.0.0.0 $(kubectl -n argo get pods | grep argo-artifacts | awk '{ print $1 }') 9000:9000  &>/dev/null &
+
+echo "ACCESS KEY = $ACCESS_KEY"
+echo "SECRET KEY = $SECRET_KEY"
+
 ```
-> Note: You need to install minio client CLI, further instrucitons [here](https://docs.min.io/docs/minio-client-quickstart-guide.html)
+> Note: You need to install minio client CLI, further instrucitons [here](https://docs.min.io/docs/minio-client-quickstart-guide.html). Below there is the main configuration for the minio CLI to add your private ocject storage
+```shell
+ mc alias set argo-artifacts https://<YOUR IP:PORT> --api s3v4   
+```
 
 
 ## Configuration files 
@@ -131,5 +143,5 @@ argo -n argo submit build_wf.yaml
 Create the Secret, naming it regcred:
 
 ```shell
-kubectl create secret docker-registry regcred --docker-server=<your-registry-server> --docker-username=<your-name> --docker-password=<your-pword> --docker-email=<your-email>
+kubectl create secret docker-registry regcred --docker-server=<your-registry-server> --docker-username=<your-name> --docker-password=<your-pword>
 ```
