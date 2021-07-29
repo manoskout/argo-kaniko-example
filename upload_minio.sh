@@ -1,4 +1,4 @@
-#!/bin/bas
+#!/bin/bash
 # Usage: ./minio-upload my-bucket my-file.zip
 # author: @koutoulakis
 showHelp() {
