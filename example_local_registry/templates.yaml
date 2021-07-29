@@ -15,8 +15,8 @@ spec:
         volumeMounts:
           - name: kaniko-secret
             mountPath: /kaniko/.docker
-          - name: dockerfile-storage
-            mountPath: /workspace
+          # - name: dockerfile-storage
+            # /mountPath: /workspace
         image: gcr.io/kaniko-project/executor:debug
         args:
           - --dockerfile={{inputs.parameters.dockerfile}}
@@ -27,6 +27,17 @@ spec:
           - --insecure-registry=true
           - --insecure-pull=true
           - --skip-tls-verify-pull=true        
+        env:
+          - name: AWS_ACCESS_KEY_ID
+            value: ufkMitetuXoEwTnQb9yX
+          - name: AWS_SECRET_ACCESS_KEY
+            value: Cp70fVf4VkzktdSnVR9AZixDGVg5hhMr28NGydON
+          - name: AWS_REGION
+            value: us-east-1
+          - name: S3_ENDPOINT
+            value: http://192.168.1.20:9000
+          - name: S3_FORCE_PATH_STYLE
+            value: "true"
   - name: test-image
     inputs:
       parameters:

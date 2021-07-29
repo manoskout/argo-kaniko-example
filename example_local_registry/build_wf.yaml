@@ -15,9 +15,7 @@ spec:
         items:
           - key: .dockerconfigjson
             path: config.json
-    - name: dockerfile-storage
-      persistentVolumeClaim:
-        claimName: dockerfile-claim
+
 
   templates:
   - name: wf-test
@@ -30,9 +28,9 @@ spec:
           arguments:
             parameters:
             - name: dockerfile
-              value: "dockerfile"
+              value: "context/dockerfile"
             - name: context
-              value: "dir://workspace"
+              value: "s3://my-bucket/context.tar.gz"
             - name: image-name
               value: 192.168.1.20:5000/kaniko-test # i.e.  manoskoutoulakis/test
             - name: image-tag
@@ -44,13 +42,14 @@ spec:
           arguments:
             parameters:
             - name: dockerfile
-              value: "dockerfile1"
+              value: "context/dockerfile1"
             - name: context
-              value: "dir://workspace"
+              value: "s3://my-bucket/context.tar.gz"
             - name: image-name
               value: 192.168.1.20:5000/kaniko-test-2 # i.e. manoskoutoulakis/secondtest
             - name: image-tag
               value: latest
+
         - name: test-first-image
           dependencies: [build-first-image]
           templateRef: 
@@ -73,14 +72,3 @@ spec:
               value: 192.168.1.20:5000/kaniko-test-2 # i.e. manoskoutoulakis/secondtest
             - name: msg
               value:  "Hello from the second image"
-  #       - name: check-image
-  #         depends: "build-container-image"
-  #         template: echo
-  #         arguments:
-  #           parameters:
-  #           - name: message
-  #             value: Checking...
-  #           - name: image-name
-  #             value: manoskoutoulakis/test #<your_image_name> # i.e.
-  #           - name: image-tag
-  #             value: latest
