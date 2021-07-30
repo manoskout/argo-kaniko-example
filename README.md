@@ -12,9 +12,10 @@ To install the whole environment you could execut the `install.sh`, otherwise yo
 - Start minikube with the command below:
   ```shell
   
-  minikube start --insecure-registry="<your)local_ip>:5000" 
+  minikube start --insecure-registry="<your_local_ip>:5000" 
   ```
-  This command is used in order to push or pull images from private registry
+  > Note: `--insecure-registry`  enable insecure communication between the docker engine and registries listening to requests from the CIDR range. This will allow us to push or pull images from the private registry.
+
 1. Argo installation ([here](https://argoproj.github.io/argo-workflows/quick-start/))
 ```shell
 kubectl create ns argo
