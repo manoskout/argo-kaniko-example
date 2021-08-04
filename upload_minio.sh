@@ -4,10 +4,11 @@
 showHelp() {
     # `cat << EOF` This means that cat should stop reading when EOF is detected
     cat <<EOF
-Install OpenBio Execution Environment
--h --help                  : Display help
--b --bucket                : Specify the bucket 
--d --directory            : Context directory that contains dockerfiles
+Upload to minio script:
+-h --help                          : Display help
+-b --bucket                        : Specify the bucket 
+-d --directory /path/to/file       : Context directory that contains dockerfiles
+-t --tar name.tar,gz 		   : Give a name of the tar file if you want to compress the file
 EOF
     # EOF is found above and hence cat command stops reading. This is equivalent to echo but much neater when printing out.
 }
@@ -17,7 +18,7 @@ EOF
 # -l is for long options with double dash like --version
 # the comma separates different long options
 # -a is for long options with single dash like -version
-options=$(getopt -l "help,bucket:,directory:" -o "hb:d: " -a -- "$@")
+options=$(getopt -l "help,bucket:,directory:,tar:" -o "hb:d:t: " -a -- "$@")
 
 # set --:
 # If no arguments follow this option, then the positional parameters are unset. Otherwise, the positional parameters
@@ -37,7 +38,11 @@ while true; do
     -d | --directory)
         export directory=$2
         shift 2
-        ;; 
+        ;;
+    -t | --tar)
+        export tar_name=$2
+	shift 2
+	;;	
     --)
         shift
         break
@@ -55,8 +60,17 @@ elif [ $(uname) = "Darwin" ]; then
     echo "OS: MacOS $(sw_vers | awk '{if($1=="ProductVersion:")print $2}') "
     host="$(ipconfig getifaddr en0):9000"
 fi
-file=context.tar.gz
-tar -czvf $file $directory/*
+
+if [ -z "$tar_name" ]; then 
+    file=$directory
+    echo "--> tar name is not specified.... We upload just the $directory"; 
+else 
+    file=$tar_name
+    echo "tar name is defined ... We upload the $file"; 
+    tar -czvf $file $directory/*
+fi
+
+
 s3_key=$(kubectl get secret argo-artifacts --namespace argo -o jsonpath="{.data.accesskey}" | base64 --decode)
 s3_secret=$(kubectl get secret argo-artifacts --namespace argo -o jsonpath="{.data.secretkey}" | base64 --decode)
 
