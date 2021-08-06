@@ -1,0 +1,188 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: artifact-passing-
+spec:
+  serviceAccountName: argo
+  volumes:
+  - name: kaniko-secret
+    secret:
+      secretName: regcred
+      items:
+        - key: .dockerconfigjson
+          path: config.json
+
+  # Resolve the ImagePullBackOff
+  imagePullSecrets: 
+  - name: regcred
+  entrypoint: artifact-example
+  templates:
+  - name: artifact-example
+    dag:
+      tasks: 
+        - name: build-tool1
+          template: build-kaniko-image
+          arguments:
+            parameters:
+            - name: dockerfile
+              value: "context/tool1.Dockerfile"
+            - name: context
+              value: "s3://my-bucket/test/context.tar.gz"
+            - name: image-name
+              value: 192.168.1.20:5000/tool1 # i.e.  manoskoutoulakis/test
+            - name: image-tag
+              value: latest
+        - name: build-tool2
+          template: build-kaniko-image
+          arguments:
+            parameters:
+            - name: dockerfile
+              value: "context/tool2.Dockerfile"
+            - name: context
+              value: "s3://my-bucket/test/context.tar.gz"
+            - name: image-name
+              value: 192.168.1.20:5000/tool2 # i.e. manoskoutoulakis/secondtest
+            - name: image-tag
+              value: latest 
+        - name: run-tool1
+          dependencies: [build-tool1,build-tool1]
+          template: first-image
+          arguments:
+            parameters:
+            - name: image-name
+              value: 192.168.1.20:5000/tool1
+        - name: run-tool2
+          dependencies: [run-tool1]
+          template: second-image
+          arguments:
+            parameters:
+              - name: image-name
+                value: 192.168.1.20:5000/tool2
+            artifacts:   # get the artifact from the previous step
+            - name: files-from-tool-1
+              from: "{{tasks.run-tool1.outputs.artifacts.my-art}}"
+        - name: results
+          dependencies: [run-tool1, run-tool2]
+          template: third-image
+          arguments:
+            artifacts:
+            - name: files-from-tool-2
+              from: "{{tasks.run-tool2.outputs.artifacts.my-art}}"
+  # Kaniko template
+  - name: build-kaniko-image
+    inputs:
+      parameters:
+        - name: dockerfile
+        - name: context
+        - name: image-name
+        - name: image-tag
+    container: 
+      volumeMounts:
+      - name: kaniko-secret
+        mountPath: /kaniko/.docker
+          # - name: dockerfile-storage
+            # /mountPath: /workspace
+      image: gcr.io/kaniko-project/executor:debug
+      args:
+        - --dockerfile={{inputs.parameters.dockerfile}}
+        - --context={{inputs.parameters.context}}
+        - --destination={{inputs.parameters.image-name}}:{{inputs.parameters.image-tag}}
+        - --insecure=true
+        - --skip-tls-verify=true
+        - --insecure-registry=true
+        - --insecure-pull=true
+        - --skip-tls-verify-pull=true        
+      env:
+        - name: AWS_ACCESS_KEY_ID
+          value: qx5GrFDv7kfWa4BF2sa4
+        - name: AWS_SECRET_ACCESS_KEY
+          value: r1HjUGr3gnc9vjJPjvTZuPjHJeqdrmgcpzfQpz6d
+        - name: AWS_REGION
+          value: us-east-1
+        - name: S3_ENDPOINT
+          value: http://192.168.1.20:9000
+        - name: S3_FORCE_PATH_STYLE
+          value: "true"
+  # For tool 1
+  - name: first-image
+    inputs:
+      artifacts: # import text.txt file as an artifact in the first tool
+      - name: my-art
+        path: /tmp
+        s3:
+          # Use the corresponding endpoint depending on your S3 provider:
+          #   Minio: my-minio-endpoint.default:9000
+          endpoint: 192.168.1.20:9000
+          bucket: my-bucket
+          key: test/
+          insecure: true
+          # accessKeySecret and secretKeySecret are secret selectors.
+          # It references the k8s secret named 'my-s3-credentials'.
+          # This secret is expected to have have the keys 'accessKey'
+          # and 'secretKey', containing the base64 encoded credentials
+          # to the bucket.
+          accessKeySecret:
+            name: argo-artifacts
+            key: accesskey
+          secretKeySecret:
+            name: argo-artifacts
+            key: secretkey
+      parameters:
+        - name: image-name
+        # - name: command
+    script:
+      image: "{{inputs.parameters.image-name}}"
+      command: [bash] # Insert the command as an input in workflow
+      source: |
+        bash tool1.sh /tmp/text.txt /tmp/text_2.txt
+    outputs:
+      artifacts:
+      # generate hello-art artifact from /tmp/hello_world.txt
+      # artifacts can be directories as well as files
+      - name: my-art
+        path: /tmp
+ 
+
+  # For tool 2
+  - name: second-image
+    inputs:
+      artifacts:
+        - name: files-from-tool-1
+          path: /tmp
+      parameters:
+        - name: image-name
+    script:
+      image: "{{inputs.parameters.image-name}}"
+      command: [bash] # Insert the command as an input in workflow
+      source: |
+        bash tool2.sh  /tmp/text_2.txt /tmp/text_3.txt
+      
+
+    outputs:
+      artifacts:
+      # generate hello-art artifact from /tmp/hello_world.txt
+      # artifacts can be directories as well as files
+      - name: my-art
+        path: /tmp
+
+  # For result
+  - name: third-image
+    inputs:
+      artifacts:
+      - name: files-from-tool-2
+        path: /tmp
+    script:
+      image: alpine:latest
+      command: [sh] # Insert the command as an input in workflow
+      source: |
+        cat /tmp/text_3.txt
+    outputs:
+      artifacts:
+      # generate hello-art artifact from /tmp/hello_world.txt
+      # artifacts can be directories as well as files
+      - name: result
+        path: /tmp
+
+
+  #  TODO :-> Why I should send the whole folder rather than a specific file
+ 
