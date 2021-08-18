@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: stdin-example-
+spec:
+  serviceAccountName: argo
+  volumes:
+  - name: kaniko-secret
+    secret:
+      secretName: regcred
+      items:
+        - key: .dockerconfigjson
+          path: config.json
+
+  # Resolve the ImagePullBackOff
+  imagePullSecrets:
+  - name: regcred
+  entrypoint: build-image-example
+  templates:
+  - name: build-image-example
+    dag:
+      tasks:
+        - name: generate
+          template: build-image
+          arguments:
+            parameters:
+            - name: dockerfile
+              value: "Dockerfile"
+            - name: context
+              value: "dir:///workspace"
+            - name: image-name
+              value: 192.168.1.32:5000/stdntool # i.e.  manoskoutoulakis/test
+            - name: image-tag
+              value: latest
+
+  - name: build-image
+    inputs:
+      parameters:
+        - name: dockerfile
+        - name: context
+        - name: image-name
+        - name: image-tag
+    script:
+      volumeMounts:
+      - name: kaniko-secret
+        mountPath: /kaniko/.docker
+      image: gcr.io/kaniko-project/executor:debug
+      command: [sh]
+      source: |                                         # Contents of the here-script
+        cat >> Dockerfile << EOF
+        FROM alpine
+        RUN echo "Created from stdin using cat"
+        EOF
+        #echo -e 'FROM alpine \nRUN echo "created from standard input"' > Dockerfile
+        cat Dockerfile
+        tar -czvf context.tar.gz Dockerfile
+        /kaniko/executor --dockerfile={{inputs.parameters.dockerfile}} --context={{inputs.parameters.context}} --destination={{inputs.parameters.image-name}}:{{inputs.parameters.image-tag}} --insecure=true --skip-tls-verify=true --insecure-registry=true --insecure-pull=true --skip-tls-verify-pull=true
